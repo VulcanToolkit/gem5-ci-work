@@ -1,9 +1,10 @@
 ---
 name: 🔀 Vulcan Dispatch
 on:
-    pull_request:
+    pull_request_target:
         types:
             - opened
+            - synchronize
     issue_comment:
         types:
             - created
@@ -35,7 +36,7 @@ jobs:
     # For comments: only if PR comment, body begins with @VulcanToolkit, and is OWNER/MEMBER/COLLABORATOR
         if: |-
             (
-              github.event_name == 'pull_request'
+              github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
             ) || (
               github.event_name == 'issue_comment' &&
               github.event.issue.pull_request &&
@@ -71,18 +72,18 @@ jobs:
               id: extract_command
               uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # ratchet:actions/github-script@v9
               env:
-                  EVENT_TYPE: ${{ github.event_name }}.${{ github.event.action }}
+                  EVENT_NAME: ${{ github.event_name }}
                   REQUEST: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
               with:
                   script: |
-                      const eventType = process.env.EVENT_TYPE;
+                      const eventName = process.env.EVENT_NAME;
                       const request = process.env.REQUEST;
                       core.setOutput('request', request);
 
                       const review_regex = new RegExp("@VulcanToolkit /review( (?<type>full|pr|commits))?( (?<context>.*))?");
                       const review_match = request.match(review_regex);
 
-                      if (eventType === 'pull_request.opened') {
+                      if (eventName === 'pull_request' || eventName === 'pull_request_target') {
                         core.setOutput('command', 'review');
                         core.setOutput('requested_pr_review', 'true');
                         core.setOutput('requested_commit_review', 'false');
